@@ -10,6 +10,10 @@
 #include <vector>
 #include <cmath>
 
+inline double QUAD(double a) {
+  return (a * a);
+}
+
 
 #define EQ_DOUBLE(a, b)                         \
   (std::abs((a) - (b)) < 0.0001)

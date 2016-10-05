@@ -14,6 +14,8 @@
 
 struct GridMapParams {
   double width, height, meters_per_cell; // width & height in meters
+  GridMapParams(double _width = 0, double _height = 0, double _meters = 0) :
+    width(_width), height(_height), meters_per_cell(_meters) { }
 };
 
 /**

@@ -12,6 +12,10 @@
 
 #include "tiny_grid_cells.h"
 #include "tiny_scan_matcher.h"
+#include "../core/olson_scan_matcher.h"
+#include <fstream>
+
+#include <ctime>
 
 /*!
  * \brief A container for the following tinySLAM parameters:\n
@@ -42,6 +46,7 @@ public:
   using Point = DiscretePoint2D;
 public:
 
+  std::ofstream file;
   /*!
    * Initializes the world to produce tiny SLAM.
    * \param[in] gcs    - a shared pointer to a cell-specific strategy.
@@ -50,10 +55,12 @@ public:
   TinyWorld(std::shared_ptr<GridCellStrategy> gcs,
             const TinyWorldParams &params,
             const GridMapParams &init_map_params) :
-    LaserScanGridWorld(gcs, init_map_params), _gcs(gcs), _params(params),
-    _scan_matcher(new TinyScanMatcher(_gcs->cost_est(),
-                                      params.BAD_LMT, params.TOT_LMT,
-                                      params.SIG_XY, params.SIG_TH)) {}
+    LaserScanGridWorld(gcs, init_map_params), _gcs(gcs), _params(params), file("/home/anton/ground_olson.txt"),
+    //_scan_matcher(new TinyScanMatcher(_gcs->cost_est(),
+    //                                  params.BAD_LMT, params.TOT_LMT,
+    //                                  params.SIG_XY, params.SIG_TH)) {}
+    _scan_matcher(new Olson_scan_matcher(1.0,0.1, init_map_params.meters_per_cell)) {
+  }
 
   /*!
    * Updates the robot pose and the map by a prediction-correction scheme.\n
@@ -64,10 +71,15 @@ public:
   virtual void handle_observation(TransformedLaserScan &scan) override {
     RobotState pose_delta;
     _scan_matcher->reset_state();
+    unsigned int tic = clock();
     _scan_matcher->process_scan(pose(), scan, map(), pose_delta);
+    tic = clock() - tic;
+    //std::cout << "Time: " << tic << std::endl;;
     update_robot_pose(pose_delta.x, pose_delta.y, pose_delta.theta);
+    file << pose().x << " " << pose().y << std::endl;
 
     bool pose_was_fixed = pose_delta.x || pose_delta.y || pose_delta.theta;
+
     auto factory = _gcs->cell_factory();
     scan.quality = pose_was_fixed ? _params.localized_scan_quality :
                                     _params.raw_scan_quality;
@@ -126,7 +138,7 @@ public:
 private:
   std::shared_ptr<GridCellStrategy> _gcs;
   const TinyWorldParams _params;
-  std::shared_ptr<TinyScanMatcher> _scan_matcher;
+  std::shared_ptr<GridScanMatcher> _scan_matcher;
 };
 
 #endif
